@@ -87,7 +87,7 @@ export default function Brief({ facts }: { facts: BriefFacts }) {
         {loading ? (
           <>
             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#1a0d06] border-t-transparent" />
-            Writing briefing…
+            Writing briefing… (free AI models take ~20 s)
           </>
         ) : state ? (
           "Regenerate briefing"

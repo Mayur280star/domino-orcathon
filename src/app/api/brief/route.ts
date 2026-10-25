@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ruleBrief, type BriefFacts } from "@/lib/sim/brief";
 
+export const maxDuration = 60;
+
 const SYSTEM = `You are the duty officer at a city emergency operations centre during a monsoon storm.
 Write a briefing for the incident commander from the simulation facts you are given.
 
@@ -36,27 +38,45 @@ export async function POST(req: Request) {
       const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
       if (res.stop_reason !== "refusal" && text) return Response.json({ text, source: "ai", model: res.model });
     } else if (process.env.OPENROUTER_API_KEY) {
-      const model = process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4.5";
-      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "X-Title": "Domino",
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 700,
-          messages: [
-            { role: "system", content: SYSTEM },
-            { role: "user", content: prompt },
-          ],
-        }),
-      });
-      if (r.ok) {
-        const data = await r.json();
-        const text: string | undefined = data?.choices?.[0]?.message?.content?.trim();
-        if (text) return Response.json({ text, source: "ai", model });
+      // Free models by default. Some free models leak their reasoning into the answer,
+      // so keep only the briefing itself and move to the next model if it's missing.
+      const primary = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free";
+      const models = [primary, "google/gemma-4-31b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"].filter(
+        (m, i, a) => a.indexOf(m) === i,
+      );
+      const deadline = Date.now() + 55_000;
+      for (const model of models) {
+        const left = deadline - Date.now();
+        if (left < 5_000) break;
+        try {
+          const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+              "Content-Type": "application/json",
+              "X-Title": "Domino",
+            },
+            body: JSON.stringify({
+              model,
+              max_tokens: 1500,
+              reasoning: { exclude: true },
+              messages: [
+                { role: "system", content: SYSTEM },
+                { role: "user", content: prompt },
+              ],
+            }),
+            signal: AbortSignal.timeout(left),
+          });
+          if (!r.ok) {
+            console.error("brief: OpenRouter", model, r.status);
+            continue;
+          }
+          const data = await r.json();
+          const text = briefingOnly(data?.choices?.[0]?.message?.content ?? "");
+          if (text) return Response.json({ text, source: "ai", model: data?.model ?? model });
+        } catch (err) {
+          console.error("brief: OpenRouter", model, err);
+        }
       }
     }
   } catch (err) {
@@ -64,4 +84,12 @@ export async function POST(req: Request) {
   }
 
   return Response.json({ text: ruleBrief(facts), source: "rules", model: null });
+}
+
+/** The briefing starts at its first section; anything before it is leaked reasoning. */
+function briefingOnly(raw: string): string | null {
+  const starts = [...raw.matchAll(/^## Situation/gm)];
+  if (!starts.length) return null;
+  const text = raw.slice(starts[starts.length - 1].index).trim();
+  return text.split(/\s+/).length >= 40 ? text : null;
 }

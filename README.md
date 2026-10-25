@@ -49,8 +49,10 @@ emergency supplies so the chain breaks early.
 
 ### 3. AI commander's briefing (`src/app/api/brief/route.ts`)
 
-The simulation's key facts (cascades, vulnerable sites, the plan, the hour-by-hour watch list) go to **Claude
-(claude-opus-5-5)**, which writes a briefing a commander can read in 30 seconds. The model may only use numbers that
+The simulation's key facts (cascades, vulnerable sites, the plan, the hour-by-hour watch list) go to a large
+language model, which writes a briefing a commander can read in 30 seconds. The live demo uses **NVIDIA Nemotron 3
+Ultra** through OpenRouter's free tier, falling back to Gemma 4 if it's rate-limited. Setting `ANTHROPIC_API_KEY` switches it to
+**Claude (claude-opus-5-5)**. The model may only use numbers that
 come from the simulation. If no key is configured, or the call fails, a rule-based briefing is used instead, so the demo
 never breaks.
 
@@ -82,7 +84,7 @@ historical incident logs. The model and optimiser would not need to change.
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript** + **Tailwind CSS 4**
 - **Leaflet** with Esri Dark Gray Canvas tiles (© Esri, HERE, Garmin, OpenStreetMap contributors)
-- **Claude API** (`@anthropic-ai/sdk`, model `claude-opus-5-5`) for the briefing, with OpenRouter as an alternative provider
+- **OpenRouter** (NVIDIA Nemotron 3 Ultra, free tier) for the briefing, with the **Claude API** (`@anthropic-ai/sdk`, `claude-opus-5-5`) as the alternative provider
 - Simulation and optimiser: plain TypeScript, no ML libraries, running client-side
 - Deployed on **Vercel**
 
@@ -97,15 +99,15 @@ npm run check        # print the results table above
 Optional, for the AI briefing, add one of these to `.env.local`:
 
 ```
-ANTHROPIC_API_KEY=...        # Claude (preferred)
-OPENROUTER_API_KEY=...       # or OpenRouter
-OPENROUTER_MODEL=...         # optional model id for OpenRouter
+OPENROUTER_API_KEY=...       # OpenRouter (free models work)
+OPENROUTER_MODEL=...         # optional, default nvidia/nemotron-3-ultra-550b-a55b:free
+ANTHROPIC_API_KEY=...        # or Claude, used first when set
 ```
 
 ## Hackathon disclosure
 
 - **Built during ORCATHON on 25 October 2026.** No code from earlier projects. The only starting point was the
   standard `create-next-app` template.
-- **AI tools used:** Claude Code (Anthropic's AI coding assistant) helped write the code. The app itself calls the
-  Claude API to write the commander's briefing.
+- **AI tools used:** Claude Code (Anthropic's AI coding assistant) helped write the code. The app calls an LLM
+  (NVIDIA Nemotron 3 Ultra via OpenRouter, or Claude) to write the commander's briefing.
 - **Open-source libraries:** Next.js, React, Leaflet, Tailwind CSS, the Anthropic SDK, all under their own licences.
