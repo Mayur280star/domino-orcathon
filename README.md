@@ -9,7 +9,7 @@ emergency supplies so the chain breaks early.
 
 ![Domino dashboard](docs/screenshot.png)
 
-**Live demo:** _add the deployed URL here_ · **Video:** _add the video link here_
+**Live demo:** https://domino-orcathon.vercel.app · **Code:** https://github.com/Mayur280star/domino-orcathon · **Video:** _add the video link here_
 
 ## What it does
 

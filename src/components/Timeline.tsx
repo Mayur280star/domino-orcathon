@@ -10,6 +10,8 @@ interface Props {
   failuresByHour: number[];
   onHour: (h: number) => void;
   onPlay: () => void;
+  /** Draw attention to the play button until the storm has been played once. */
+  hint?: boolean;
 }
 
 const W = 720;
@@ -17,7 +19,7 @@ const H = 64;
 const r2 = (x: number) => Math.round(x * 100) / 100; // same SVG numbers on server and client
 
 /** Hourly rainfall bars with a playhead; drag or play to watch the cascade unfold. */
-export default function Timeline({ rain, hour, playing, failuresByHour, onHour, onPlay }: Props) {
+export default function Timeline({ rain, hour, playing, failuresByHour, onHour, onPlay, hint }: Props) {
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(...rain, 1);
   const step = W / (HORIZON + 1);
@@ -28,9 +30,11 @@ export default function Timeline({ rain, hour, playing, failuresByHour, onHour, 
     <div className="flex items-center gap-3 border-t border-line bg-panel px-3 py-2">
       <button
         onClick={onPlay}
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-[#1a0d06] transition hover:brightness-110"
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-[#1a0d06] transition hover:brightness-110"
         aria-label={playing ? "Pause storm playback" : "Play storm"}
+        title={playing ? "Pause" : "Play the storm hour by hour"}
       >
+        {hint && <span className="absolute inset-0 animate-ping rounded-full bg-accent/60" />}
         {playing ? (
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
             <rect x="6" y="5" width="4" height="14" rx="1" />

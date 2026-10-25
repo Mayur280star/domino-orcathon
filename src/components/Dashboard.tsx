@@ -10,6 +10,7 @@ import { KIND_ICON, KIND_LABEL, RAMP_CSS, RESOURCE, actionFor, fmt, fmtK, pct, r
 import Compare, { STRATEGY_LABEL, type Strategy } from "./Compare";
 import Timeline from "./Timeline";
 import Brief from "./Brief";
+import About from "./About";
 
 const MapView = dynamic(() => import("./MapView"), {
   ssr: false,
@@ -43,6 +44,18 @@ export default function Dashboard() {
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("plan");
+  const [about, setAbout] = useState(false);
+  const [played, setPlayed] = useState(false);
+
+  // Show the explainer once per browser, for judges opening the link cold.
+  useEffect(() => {
+    if (!localStorage.getItem("domino-seen-about")) {
+      // localStorage only exists after hydration, so this has to run in an effect.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAbout(true);
+      localStorage.setItem("domino-seen-about", "1");
+    }
+  }, []);
 
   const scenario = useMemo(() => ({ rainfall, highTide }), [rainfall, highTide]);
   const dScenario = useDeferredValue(scenario);
@@ -92,6 +105,7 @@ export default function Dashboard() {
   const togglePlay = () => {
     if (playing) return setPlaying(false);
     if (hour >= HORIZON) setHour(0);
+    setPlayed(true);
     setPlaying(true);
   };
 
@@ -143,6 +157,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+      <About open={about} onClose={() => setAbout(false)} />
       {/* Header */}
       <header className="flex items-center justify-between gap-4 border-b border-line bg-panel px-4 py-2.5">
         <div className="flex items-center gap-3">
@@ -153,11 +168,17 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="hidden rounded-full border border-line-2 px-2.5 py-1 text-ink-2 sm:inline">
+          <button
+            onClick={() => setAbout(true)}
+            className="rounded-full border border-line-2 px-2.5 py-1 text-ink-2 transition hover:border-ink-3 hover:text-ink"
+          >
+            How it works
+          </button>
+          <span className="hidden rounded-full border border-line-2 px-2.5 py-1 text-ink-2 md:inline">
             {city.name} · monsoon scenario
           </span>
           <span
-            className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-warning"
+            className="whitespace-nowrap rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-warning"
             title="Locations are real; populations, thresholds and dependency probabilities are illustrative."
           >
             Simulated data
@@ -351,6 +372,7 @@ export default function Dashboard() {
               setHour(h);
             }}
             onPlay={togglePlay}
+            hint={!played}
           />
         </main>
 
