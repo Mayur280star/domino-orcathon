@@ -9,10 +9,16 @@ Write a briefing for the incident commander from the simulation facts you are gi
 Rules:
 - Use only numbers that appear in the facts. Do not invent places, numbers, or events.
 - "Harm" means people at serious risk (expected value across simulated storms).
+- Write large numbers with commas, e.g. 246,670.
 - Plain, direct language a commander can act on in 30 seconds. No preamble, no sign-off.
-- Under 200 words. Markdown with these sections: "## Situation", "## Most likely cascade",
-  "## Priority actions" (numbered, most important first, say what to send where and why),
-  "## Why not the hazard-first plan", "## Watch list" (hour by hour).`;
+- Under 200 words, in Markdown. Use exactly these five headings, word for word, in this order:
+  ## Situation
+  ## Most likely cascade
+  ## Priority actions
+  ## Why not the hazard-first plan
+  ## Watch list
+- Under "Priority actions", write a numbered list, most important first, saying what to send where and why.
+- Under "Watch list", go hour by hour.`;
 
 export async function POST(req: Request) {
   let facts: BriefFacts;
@@ -38,12 +44,16 @@ export async function POST(req: Request) {
       const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
       if (res.stop_reason !== "refusal" && text) return Response.json({ text, source: "ai", model: res.model });
     } else if (process.env.OPENROUTER_API_KEY) {
-      // Free models by default. Some free models leak their reasoning into the answer,
-      // so keep only the briefing itself and move to the next model if it's missing.
-      const primary = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free";
-      const models = [primary, "google/gemma-4-31b-it:free", "nvidia/nemotron-3-super-120b-a12b:free"].filter(
-        (m, i, a) => a.indexOf(m) === i,
-      );
+      // Free models only. They are all reasoning models: left on, reasoning eats the token budget and
+      // the briefing comes back cut off, so it's switched off. If a model still returns a partial
+      // briefing, move on to the next one.
+      const primary = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3.5-super-vl:free";
+      const models = [
+        primary,
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "google/gemma-4-31b-it:free",
+      ].filter((m, i, a) => a.indexOf(m) === i);
       const deadline = Date.now() + 55_000;
       for (const model of models) {
         const left = deadline - Date.now();
@@ -58,21 +68,26 @@ export async function POST(req: Request) {
             },
             body: JSON.stringify({
               model,
-              max_tokens: 1500,
-              reasoning: { exclude: true },
+              max_tokens: 2000,
+              reasoning: { enabled: false, exclude: true },
               messages: [
                 { role: "system", content: SYSTEM },
                 { role: "user", content: prompt },
               ],
             }),
-            signal: AbortSignal.timeout(left),
+            signal: AbortSignal.timeout(Math.min(left, 25_000)),
           });
           if (!r.ok) {
             console.error("brief: OpenRouter", model, r.status);
             continue;
           }
           const data = await r.json();
-          const text = briefingOnly(data?.choices?.[0]?.message?.content ?? "");
+          const choice = data?.choices?.[0];
+          if (choice?.finish_reason === "length") {
+            console.error("brief: OpenRouter", model, "briefing cut off");
+            continue;
+          }
+          const text = briefingOnly(choice?.message?.content ?? "");
           if (text) return Response.json({ text, source: "ai", model: data?.model ?? model });
         } catch (err) {
           console.error("brief: OpenRouter", model, err);
@@ -90,6 +105,11 @@ export async function POST(req: Request) {
 function briefingOnly(raw: string): string | null {
   const starts = [...raw.matchAll(/^## Situation/gm)];
   if (!starts.length) return null;
-  const text = raw.slice(starts[starts.length - 1].index).trim();
+  const text = raw
+    .slice(starts[starts.length - 1].index)
+    .trim()
+    // Some models copy the prompt's guidance into the heading, e.g. "## Priority actions (numbered, …)".
+    .replace(/^(##\s+[^(\n]+?)\s*\(.*\)\s*$/gm, "$1");
+  if (!/^## Watch list/m.test(text)) return null;
   return text.split(/\s+/).length >= 40 ? text : null;
 }
