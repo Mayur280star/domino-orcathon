@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg: #0e0e0d;
+  --panel: #161614;
+  --panel-2: #1d1d1b;
+  --line: #2b2b28;
+  --line-2: #3a3a36;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --ink-3: #8d8c84;
+  --accent: #ff7a3d;
+  --rain: #3987e5;
+  --direct: #3987e5;
+  --cascade: #d95926;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-rain: var(--rain);
+  --color-direct: var(--direct);
+  --color-cascade: var(--cascade);
+  --color-good: var(--good);
+  --color-warning: var(--warning);
+  --color-critical: var(--critical);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line-2);
+  outline: none;
+}
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--accent);
+  cursor: pointer;
+}
+input[type="range"].slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--accent);
+  cursor: pointer;
+}
+
+/* Map */
+.leaflet-container {
+  background: #0b0b0a;
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  background: rgba(14, 14, 13, 0.7) !important;
+  color: var(--ink-3) !important;
+  font-size: 10px;
+}
+.leaflet-control-attribution a {
+  color: var(--ink-2) !important;
+}
+.leaflet-bar a {
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+.leaflet-tooltip.node-tip {
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  color: var(--ink);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.leaflet-tooltip.node-tip::before {
+  display: none;
+}
+
+.node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid rgba(240, 239, 236, 0.85);
+  box-shadow: 0 0 0 2px rgba(11, 11, 10, 0.9);
+  transition: background-color 0.25s ease;
+  cursor: pointer;
+}
+.node svg {
+  width: 56%;
+  height: 56%;
+}
+.node.selected {
+  box-shadow: 0 0 0 2px rgba(11, 11, 10, 0.9), 0 0 0 5px var(--ink);
+}
+.node.hot::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: pulse 1.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes pulse {
+  from {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.badges {
+  position: absolute;
+  top: -9px;
+  left: calc(100% - 6px);
+  display: flex;
+  gap: 2px;
+}
+.badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #0b0b0a;
+  background: var(--ink);
+  box-shadow: 0 0 0 2px #0b0b0a;
+}
+.edge-flow {
+  stroke-dasharray: 6 8;
+  animation: flow 1s linear infinite;
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node.hot::after,
+  .edge-flow {
+    animation: none;
+  }
+}
+
+.badge-static {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0b0b0a;
+  background: var(--ink);
+}
